@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 Int                   @id @default(autoincrement())
+  username           String                @unique
+  password           String
+  role               Role
+  name               String
+  surname            String
+  email              String
+
+  // 🔁 Отношения:
+  teacherGroups      Group[]               @relation("GroupTeacher")
+  studentGroups      StudentGroup[]
+  taughtLessons      Lesson[]              @relation("LessonTeacher")
+  studentLessons     StudentLesson[]
+  diagnosticResults  DiagnosticTestResult[]
+}
+
+model Group {
+  id        Int           @id @default(autoincrement())
+  name      String
+
+  teacher   User          @relation("GroupTeacher", fields: [teacherId], references: [id])
+  teacherId Int
+
+  students  StudentGroup[]
+  lessons   Lesson[]
+}
+
+model StudentGroup {
+  id        Int     @id @default(autoincrement())
+
+  student   User    @relation(fields: [studentId], references: [id])
+  studentId Int
+
+  group     Group   @relation(fields: [groupId], references: [id])
+  groupId   Int
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  name        String
+  date        DateTime
+
+  group       Group?    @relation(fields: [groupId], references: [id])
+  groupId     Int?
+
+  teacher     User     @relation("LessonTeacher", fields: [teacherId], references: [id])
+  teacherId   Int
+
+  studentLessons StudentLesson[]
+}
+
+model StudentLesson {
+  id            Int      @id @default(autoincrement())
+  student       User     @relation(fields: [studentId], references: [id])
+  studentId     Int
+  lesson        Lesson   @relation(fields: [lessonId], references: [id])
+  lessonId      Int
+  score         Int
+  homeworkScore Int
+  status        Status
+  comment       String?
+
+  @@unique([studentId, lessonId]) // 🔒 защита от дублей
+}
+
+
+model TestComponent {
+  id                Int                     @id @default(autoincrement())
+  name              String
+  category          String
+  diagnosticResults DiagnosticTestResult[]
+}
+
+model DiagnosticTestResult {
+  id          Int            @id @default(autoincrement())
+
+  student     User           @relation(fields: [studentId], references: [id])
+  studentId   Int
+
+  component   TestComponent  @relation(fields: [componentId], references: [id])
+  componentId Int
+
+  score       Float
+  date        DateTime
+}
+
+enum Status {
+  visited
+  absent_reasoned
+  absent_unreasoned
+}
+
+enum Role {
+  admin
+  teacher
+  student
+}
