@@ -34,9 +34,21 @@ interface LessonStudent {
   homeworkScore: number
 }
 
+interface AdminGroupPageProps {
+  group: Group
+  isEditingName: boolean
+  setIsEditingName: (value: boolean) => void
+  editedGroupName: string
+  setEditedGroupName: (value: string) => void
+  refreshGroups: () => void
+}
+
 export default function AdminGroupPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+
+  const [newGroupName, setNewGroupName] = useState<string>('')
+
 
   const [group, setGroup] = useState<Group | null>(null)
   const [allStudents, setAllStudents] = useState<User[]>([])
@@ -56,6 +68,9 @@ export default function AdminGroupPage() {
   const [repeatWeeks, setRepeatWeeks] = useState<number>(4)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
+  const [isEditingName, setIsEditingName] = useState(false)
+const [editedGroupName, setEditedGroupName] = useState('')
+
   
 const [selectedWeekday, setSelectedWeekday] = useState<number>(0) // 0 = понедельник
   const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -69,6 +84,7 @@ const [selectedWeekday, setSelectedWeekday] = useState<number>(0) // 0 = пон�
   const fetchGroup = async () => {
     const res = await axios.get(`/admin/groups/${id}`)
     setGroup(res.data.group)
+    setNewGroupName(res.data.group.name)
     setSelectedTeacherId(res.data.group.teacherId)
   }
 
@@ -96,6 +112,25 @@ const [selectedWeekday, setSelectedWeekday] = useState<number>(0) // 0 = пон�
     await axios.post(`/admin/groups/${id}/change-teacher`, { teacherId: selectedTeacherId })
     fetchGroup()
   }
+
+  const saveGroupName = async () => {
+  if (!editedGroupName.trim() || editedGroupName === group?.name) {
+    setIsEditingName(false)
+    return
+  }
+
+  try {
+    await axios.post(`/admin/groups/${id}/rename`, {
+      name: editedGroupName.trim(),
+    })
+    await fetchGroup()
+    setIsEditingName(false)
+  } catch (err) {
+    console.error('Ошибка при переименовании группы:', err)
+  }
+}
+
+
 
   const fetchLessonStudents = async (lessonId: number) => {
     setSelectedLessonId(lessonId)
@@ -211,7 +246,49 @@ const updateLessonsLeft = async (studentId: number, lessonsLeft: number) => {
         ← Назад к панели администратора
       </button>
 
-      <h2 className="text-3xl font-bold">👥 Группа: {group.name}</h2>
+      <h2 className="text-3xl font-bold flex items-center gap-3">
+  👥 Группа:
+  {isEditingName ? (
+    <>
+      <input
+        value={editedGroupName}
+        onChange={(e) => setEditedGroupName(e.target.value)}
+        className="border px-2 py-1 rounded text-base"
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') saveGroupName()
+          if (e.key === 'Escape') setIsEditingName(false)
+        }}
+      />
+      <button
+        onClick={saveGroupName}
+        className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+      >
+        ✔
+      </button>
+      <button
+        onClick={() => setIsEditingName(false)}
+        className="text-gray-500 hover:text-red-500"
+      >
+        ✖
+      </button>
+    </>
+  ) : (
+    <>
+      <span>{group.name}</span>
+      <button
+        onClick={() => {
+          setIsEditingName(true)
+          setEditedGroupName(group.name)
+        }}
+        className="text-blue-600 hover:underline text-sm"
+      >
+        ✏️ редактировать
+      </button>
+    </>
+  )}
+</h2>
+
 
       {/* Учитель */}
       <div>

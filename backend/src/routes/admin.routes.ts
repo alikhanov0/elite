@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authenticate } from '../middlewares/auth.middleware'
 import { onlyRole } from '../middlewares/role.middleware'
-import { getAllUsers, updateUserRole,  deleteUser, updateBirthday } from '../controllers/admin.controller'
+import { getAllUsers, updateUserRole,  deleteUser, updateBirthday, renameGroup } from '../controllers/admin.controller'
 import { getAllComponents, updateDiagnosticScore, getStudentLessonAnalytics, getStudentLessonsInRange } from '../controllers/diagnostics.controller'
 import { PrismaClient } from '@prisma/client'
 import {  getAllGroups,  getGroupById,  updateLesson,  changeTeacher,  addStudentToGroup,  removeStudentFromGroup } from '../controllers/group.controller'
@@ -38,6 +38,8 @@ router.post('/lesson/:lessonId/save', authenticate, onlyRole('admin'), saveLesso
 router.post('/groups/:groupId/add-lesson', createLesson)
 router.delete('/groups/:groupId/lessons/:lessonId', deleteLesson)
 router.post('/groups/:groupId/update-lessons', updateLessons)
+router.post('/groups/:id/rename', renameGroup)
+
 
 router.put('/users/:userId/birthday', onlyRole('admin'), updateBirthday)
 

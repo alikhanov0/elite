@@ -69,3 +69,13 @@ export const updateBirthday: RequestHandler = async (req, res) => {
     res.status(500).json({ error: 'Ошибка при обновлении дня рождения' })
   }
 }
+
+export const renameGroup: RequestHandler = async (req, res) => {
+  const groupId = +req.params.id
+  const { name } = req.body
+  await prisma.group.update({
+    where: { id: groupId },
+    data: { name }
+  })
+  res.json({ ok: true })
+}

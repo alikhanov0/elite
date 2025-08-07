@@ -6,6 +6,8 @@ import AdminRegister from './pages/AdminRegister'
 import AdminGroups from './pages/AdminGroups'
 import RatingPage from './pages/RatingPage'
 import BirthdayPage from './pages/BirthdayPage'
+import AllRatingPage from './pages/AllRatingPage'
+import RatingByGradePage from './pages/RatingByGradePage'
 
 
 
@@ -52,6 +54,8 @@ export default function App() {
         <Route path="/admin/register" element={<PrivateRoute><AdminRegister /></PrivateRoute>} />
         <Route path="/admin/groups/:id" element={<AdminGroups />} />
         <Route path="/rating" element={<RatingPage />} />
+        <Route path="/rating/all" element={<AllRatingPage />} />
+        <Route path="/rating/by-grade" element={<RatingByGradePage />} />
         <Route path="/birthdays" element={<BirthdayPage />} />
         <Route path="/" element={
           <PrivateRoute>
