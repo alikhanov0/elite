@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
 import axios from '../api/axios'
 import { useParams, useNavigate } from 'react-router-dom'
+import { startOfWeek, addDays, subWeeks, addWeeks, format } from 'date-fns'
+import { ru } from 'date-fns/locale'
 
 interface Group {
   id: number
   name: string
   teacherId: number
   teacher: { id: number; name: string; surname: string }
-  students: { student: { id: number; name: string; surname: string; username: string } }[]
+  students: {
+    student: { id: number; name: string; surname: string; username: string }
+    lessonsLeft: number  // ← добавьте это поле
+  }[]
   lessons: { id: number; name: string; date: string }[]
 }
+
 
 interface User {
   id: number
@@ -17,6 +23,15 @@ interface User {
   surname: string
   username: string
   role: 'student' | 'teacher'
+}
+
+interface LessonStudent {
+  studentId: number
+  name: string
+  surname: string
+  status: 'visited' | 'absent_reasoned' | 'absent_unreasoned'
+  score: number
+  homeworkScore: number
 }
 
 export default function AdminGroupPage() {
@@ -27,13 +42,24 @@ export default function AdminGroupPage() {
   const [allStudents, setAllStudents] = useState<User[]>([])
   const [allTeachers, setAllTeachers] = useState<User[]>([])
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null)
+  const [selectedStudentId, setSelectedStudentId] = useState<number | ''>('')
 
-  const [newLessonName, setNewLessonName] = useState('')
-  const [newLessonDate, setNewLessonDate] = useState('')
+  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null)
+  const [lessonStudents, setLessonStudents] = useState<LessonStudent[]>([])
+
   const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
   const [editingLessonName, setEditingLessonName] = useState('')
   const [editingLessonDate, setEditingLessonDate] = useState('')
+
+  const [newLessonName, setNewLessonName] = useState('')
+  const [newLessonDate, setNewLessonDate] = useState('')
+  const [repeatWeeks, setRepeatWeeks] = useState<number>(4)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+
+  
+const [selectedWeekday, setSelectedWeekday] = useState<number>(0) // 0 = понедельник
+  const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }))
+
 
   useEffect(() => {
     fetchGroup()
@@ -53,8 +79,10 @@ export default function AdminGroupPage() {
     setAllTeachers(users.filter(u => u.role === 'teacher'))
   }
 
-  const addStudent = async (studentId: number) => {
-    await axios.post(`/admin/groups/${id}/add-student`, { studentId })
+  const addStudent = async () => {
+    if (selectedStudentId === '') return
+    await axios.post(`/admin/groups/${id}/add-student`, { studentId: selectedStudentId })
+    setSelectedStudentId('')
     fetchGroup()
   }
 
@@ -69,48 +97,113 @@ export default function AdminGroupPage() {
     fetchGroup()
   }
 
-  const addLesson = async () => {
-    if (!newLessonName || !newLessonDate) return
-    await axios.post(`/admin/groups/${id}/add-lesson`, {
-      name: newLessonName,
-      date: newLessonDate
-    })
-    setNewLessonName('')
-    setNewLessonDate('')
-    fetchGroup()
+  const fetchLessonStudents = async (lessonId: number) => {
+    setSelectedLessonId(lessonId)
+    const res = await axios.get(`/admin/lesson/${lessonId}/students`)
+    const mapped = res.data.students.map((s: any) => ({
+      ...s,
+      studentId: s.studentId || s.id
+    }))
+    setLessonStudents(mapped)
   }
+
+  const handleLessonStudentChange = (
+    studentId: number,
+    field: keyof LessonStudent,
+    value: any
+  ) => {
+    if (field === 'score' || field === 'homeworkScore') {
+      value = Math.max(0, Math.min(10, Number(value)))
+    }
+    setLessonStudents(prev =>
+      prev.map(s =>
+        s.studentId === studentId ? { ...s, [field]: value } : s
+      )
+    )
+  }
+
+
+  const saveLessonStudentData = async () => {
+  if (!selectedLessonId) return;
+  try {
+    const res = await axios.post(`/admin/lesson/${selectedLessonId}/save`, lessonStudents);
+    if (res.data.warning) {
+      alert(res.data.warning); // предупреждение если урок не списался
+    }
+    // обновляем данные группы и таблицу оценок
+    await fetchGroup();
+    fetchLessonStudents(selectedLessonId);
+  } catch (err) {
+    console.error(err);
+    alert('Ошибка при сохранении');
+  }
+};
+
+
+
+const addLesson = async () => {
+  if (!newLessonName) return
+
+  const baseDate = addDays(weekStart, selectedWeekday)
+
+ await axios.post(`/admin/groups/${id}/add-lesson`, {
+  name: newLessonName,
+  date: baseDate.toISOString(),
+  repeat: repeatWeeks
+})
+
+
+  setNewLessonName('')
+  setRepeatWeeks(4)
+  setSelectedWeekday(0)
+  fetchGroup()
+}
+
+
+const updateLessonsLeft = async (studentId: number, lessonsLeft: number) => {
+  await axios.post(`/admin/groups/${id}/update-lessons`, {
+    studentId,
+    lessonsLeft
+  })
+  fetchGroup()
+}
+
+
 
   const removeLesson = async (lessonId: number) => {
     await axios.delete(`/admin/groups/${id}/lessons/${lessonId}`)
     fetchGroup()
   }
 
-  const startEditLesson = (lesson: Group['lessons'][0]) => {
-    setEditingLessonId(lesson.id)
-    setEditingLessonName(lesson.name)
-    setEditingLessonDate(lesson.date.slice(0, 10))
+  const sortedLessons = group
+    ? [...group.lessons].sort((a, b) =>
+        sortOrder === 'asc'
+          ? new Date(a.date).getTime() - new Date(b.date).getTime()
+          : new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+    : []
+
+
+  const getWeekKey = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return startOfWeek(d, { weekStartsOn: 1 }).toISOString().slice(0, 10)
   }
 
-  const saveLessonEdit = async () => {
-    if (!editingLessonId) return
-    await axios.put(`/admin/groups/${id}/lessons/${editingLessonId}`, {
-      name: editingLessonName,
-      date: editingLessonDate
-    })
-    setEditingLessonId(null)
-    setEditingLessonName('')
-    setEditingLessonDate('')
-    fetchGroup()
-  }
+  const lessonsByWeek: Record<string, typeof sortedLessons> = {}
+  sortedLessons.forEach(l => {
+    const key = getWeekKey(l.date)
+    if (!lessonsByWeek[key]) lessonsByWeek[key] = []
+    lessonsByWeek[key].push(l)
+  })
 
   if (!group) return <p>Загрузка...</p>
 
   const currentStudentIds = group.students.map(s => s.student.id)
-  const sortedLessons = [...group.lessons].sort((a, b) =>
-    sortOrder === 'asc'
-      ? new Date(a.date).getTime() - new Date(b.date).getTime()
-      : new Date(b.date).getTime() - new Date(a.date).getTime()
-  )
+  const sortedStudents = [...group.students].sort((a, b) => {
+  const nameA = `${a.student.name} ${a.student.surname}`.toLowerCase()
+  const nameB = `${b.student.name} ${b.student.surname}`.toLowerCase()
+  return nameA.localeCompare(nameB)
+})
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -121,16 +214,20 @@ export default function AdminGroupPage() {
       <h2 className="text-3xl font-bold">👥 Группа: {group.name}</h2>
 
       {/* Учитель */}
-      <div className="space-y-2">
-        <h3 className="text-xl font-semibold">🧑‍🏫 Учитель: {group.teacher?.name} {group.teacher?.surname}</h3>
+      <div>
+        <h3 className="text-xl font-semibold">
+          🧑‍🏫 Учитель: {group.teacher.name} {group.teacher.surname}
+        </h3>
         <div className="flex gap-2 items-center">
           <select
             className="border p-2 rounded"
             value={selectedTeacherId ?? ''}
-            onChange={(e) => setSelectedTeacherId(+e.target.value)}
+            onChange={e => setSelectedTeacherId(+e.target.value)}
           >
             {allTeachers.map(t => (
-              <option key={t.id} value={t.id}>{t.name} {t.surname}</option>
+              <option key={t.id} value={t.id}>
+                {t.name} {t.surname}
+              </option>
             ))}
           </select>
           <button
@@ -143,102 +240,267 @@ export default function AdminGroupPage() {
       </div>
 
       {/* Студенты */}
-      <div className="space-y-2">
+      
+      <div>
         <h3 className="text-xl font-semibold">🧑‍🎓 Студенты</h3>
         <ul className="space-y-1">
-          {group.students.map(s => (
+          {sortedStudents.map(s => (
             <li key={s.student.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
               <span>{s.student.name} {s.student.surname} ({s.student.username})</span>
-              <button onClick={() => removeStudent(s.student.id)} className="text-red-600 hover:underline">Удалить</button>
+              <span className="ml-4 font-medium">
+    🧾 
+
+<input
+  type="number"
+  min={0}
+  className="border p-1 rounded w-20 ml-2"
+  value={s.lessonsLeft}
+  onChange={e => updateLessonsLeft(s.student.id, +e.target.value)}
+/>уроков осталось </span>
+
+
+              <button
+                onClick={() => removeStudent(s.student.id)}
+                className="text-red-600 hover:underline"
+              >
+                Удалить
+              </button>
             </li>
           ))}
         </ul>
-        <select
-          className="mt-2 border p-2 rounded"
-          onChange={(e) => addStudent(+e.target.value)}
-          defaultValue=""
-        >
-          <option value="" disabled>➕ Добавить студента</option>
-          {allStudents
-            .filter(s => !currentStudentIds.includes(s.id))
-            .map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name} {s.surname}
-              </option>
-            ))}
-        </select>
-      </div>
-
-      {/* Уроки */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold">📅 Уроки</h3>
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            Сортировать: {sortOrder === 'asc' ? 'от старых к новым' : 'от новых к старым'}
-          </button>
-        </div>
-
-        <ul className="space-y-1">
-          {sortedLessons.map(l => (
-            <li key={l.id} className="bg-gray-100 p-3 rounded space-y-1">
-              {editingLessonId === l.id ? (
-                <div className="space-y-1">
-                  <input
-                    type="text"
-                    className="border p-1 rounded w-full"
-                    value={editingLessonName}
-                    onChange={(e) => setEditingLessonName(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="border p-1 rounded"
-                    value={editingLessonDate}
-                    onChange={(e) => setEditingLessonDate(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={saveLessonEdit} className="bg-green-600 text-white px-3 py-1 rounded">💾 Сохранить</button>
-                    <button onClick={() => setEditingLessonId(null)} className="text-gray-600 hover:underline">Отмена</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex justify-between items-center">
-                  <span>{l.name} — {new Date(l.date).toLocaleDateString()}</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => startEditLesson(l)} className="text-blue-600 hover:underline">✏️ Редактировать</button>
-                    <button onClick={() => removeLesson(l.id)} className="text-red-600 hover:underline">Удалить</button>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        {/* Новый урок */}
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="text"
-            placeholder="Название урока"
-            className="border p-2 rounded w-1/2"
-            value={newLessonName}
-            onChange={(e) => setNewLessonName(e.target.value)}
-          />
-          <input
-            type="date"
+        <div className="flex gap-2 items-center mt-2">
+          <select
             className="border p-2 rounded"
-            value={newLessonDate}
-            onChange={(e) => setNewLessonDate(e.target.value)}
-          />
-          <button
-            onClick={addLesson}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            value={selectedStudentId}
+            onChange={e => setSelectedStudentId(+e.target.value)}
           >
-            ➕ Добавить урок
+            <option value="">➕ Добавить студента</option>
+            {allStudents
+              .filter(s => !currentStudentIds.includes(s.id))
+              .map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.surname}
+                </option>
+              ))}
+          </select>
+          <button
+            onClick={addStudent}
+            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+          >
+            Добавить
           </button>
         </div>
       </div>
+
+      {/* Расписание */}
+<div className="border rounded p-4 bg-gray-50">
+  <h3 className="text-xl mb-4">
+    Неделя с {format(weekStart, 'dd MMM yyyy', { locale: ru })}
+  </h3>
+
+  {group && (
+    <>
+      {(() => {
+        const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+        const dayLessons = weekDays.map(day =>
+          group.lessons.filter(l => new Date(l.date).toDateString() === day.toDateString())
+        )
+
+        return (
+          <div className="grid grid-cols-7 gap-2">
+            {weekDays.map((day, idx) => (
+              <div key={idx} className="border p-2 rounded min-h-[120px]">
+                <div className="font-semibold text-sm mb-2 text-center">
+                  {format(day, 'EEEE, dd', { locale: ru })}
+                </div>
+                {dayLessons[idx].map(l => (
+                  <div
+                    key={l.id}
+                    className="bg-white p-2 mb-1 rounded shadow cursor-pointer hover:bg-blue-50"
+                    onClick={() => fetchLessonStudents(l.id)}
+                  >
+                    <div>{l.name}</div>
+                    <div className="text-xs text-gray-600">
+                      {format(new Date(l.date), 'HH:mm')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+    </>
+  )}
+
+  {/* Переключение недель */}
+  <div className="flex justify-between mt-4">
+    <button
+      onClick={() => setWeekStart(prev => subWeeks(prev, 1))}
+      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      ← Пред. неделя
+    </button>
+    <button
+      onClick={() => setWeekStart(prev => addWeeks(prev, 1))}
+      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      След. неделя →
+    </button>
+  </div>
+</div>
+
+
+
+
+
+      {/* Таблица оценок */}
+      {selectedLessonId && (
+        <div className="space-y-2 mt-6">
+          <h3 className="text-xl font-semibold">📝 Проведение урока</h3>
+          <table className="w-full border text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-2 text-left">Студент</th>
+                <th className="p-2">Статус</th>
+                <th className="p-2">Оценка</th>
+                <th className="p-2">ДЗ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lessonStudents.map(s => (
+                <tr key={s.studentId} className="border-t">
+                  <td className="p-2">
+                    {s.name} {s.surname}
+                  </td>
+                  <td className="p-2">
+                    <select
+                      className="border p-1 rounded"
+                      value={s.status}
+                      onChange={e => handleLessonStudentChange(s.studentId, 'status', e.target.value)}
+                    >
+                      <option value="visited">✅ Был</option>
+                      <option value="absent_reasoned">🟡 Уваж.</option>
+                      <option value="absent_unreasoned">🔴 Без ув.</option>
+                    </select>
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={s.score}
+                      onChange={e => handleLessonStudentChange(s.studentId, 'score', +e.target.value)}
+                      onBlur={e => {
+                        let v = parseInt(e.target.value)
+                        if (isNaN(v)) v = 0
+                        if (v < 0) v = 0
+                        if (v > 10) v = 10
+                        handleLessonStudentChange(s.studentId, 'score', v)
+                      }}
+                      className="border p-1 rounded w-16 text-center"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      value={s.homeworkScore}
+                      onChange={e =>
+                        handleLessonStudentChange(s.studentId, 'homeworkScore', +e.target.value)
+                      }
+                      onBlur={e => {
+                        let v = parseInt(e.target.value)
+                        if (isNaN(v)) v = 0
+                        if (v < 0) v = 0
+                        if (v > 10) v = 10
+                        handleLessonStudentChange(s.studentId, 'homeworkScore', v)
+                      }}
+                      className="border p-1 rounded w-16 text-center"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex justify-end gap-4 mt-4">
+  <button
+    onClick={saveLessonStudentData}
+    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+  >
+    💾 Сохранить
+  </button>
+
+  <button
+    onClick={async () => {
+      if (
+        window.confirm('Вы уверены, что хотите удалить этот урок? Данные будут удалены безвозвратно.')
+      ) {
+        await axios.delete(`/admin/groups/${id}/lessons/${selectedLessonId}`)
+        setSelectedLessonId(null)
+        setLessonStudents([])
+        fetchGroup()
+      }
+    }}
+    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+  >
+    🗑 Удалить урок
+  </button>
+</div>
+
+
+          
+
+        </div>
+      )}
+
+      
+<div className="border rounded bg-white p-4 mt-8 shadow-md">
+  <h3 className="text-2xl font-bold mb-4 text-gray-800">➕ Добавить урок</h3>
+
+  <div className="flex flex-wrap items-center gap-4">
+    <input
+      type="text"
+      placeholder="Название урока"
+      className="border p-2 rounded flex-1 min-w-[200px]"
+      value={newLessonName}
+      onChange={e => setNewLessonName(e.target.value)}
+    />
+    <select
+  className="border p-2 rounded"
+  value={selectedWeekday}
+  onChange={e => setSelectedWeekday(Number(e.target.value))}
+>
+  <option value={0}>Понедельник</option>
+  <option value={1}>Вторник</option>
+  <option value={2}>Среда</option>
+  <option value={3}>Четверг</option>
+  <option value={4}>Пятница</option>
+  <option value={5}>Суббота</option>
+  <option value={6}>Воскресенье</option>
+</select>
+
+    <input
+      type="number"
+      min={1}
+      max={52}
+      className="border p-2 rounded w-28"
+      value={repeatWeeks}
+      onChange={e => setRepeatWeeks(Number(e.target.value))}
+      placeholder="0"
+    />
+    <button
+      onClick={addLesson}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+    >
+      Добавить
+    </button>
+  </div>
+</div>
+
+<div className="h-20" /> {/* Невидимое пространство снизу */}
     </div>
   )
 }

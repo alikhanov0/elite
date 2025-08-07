@@ -1,12 +1,9 @@
 import { Router } from 'express'
 import { authenticate } from '../middlewares/auth.middleware'
-import { getRadarData, getLessonAnalytics } from '../controllers/analytics.controller'
+import { getRadarData, getLessonAnalytics, getGroupAvgByDate } from '../controllers/analytics.controller'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
-
-
-
 const router = Router()
 
 router.get('/radar', authenticate, getRadarData)
@@ -38,6 +35,8 @@ router.get('/my-lessons', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Ошибка при получении аналитики' })
   }
 })
+
+router.get('/group-avg', authenticate, getGroupAvgByDate);
 
 
 export default router

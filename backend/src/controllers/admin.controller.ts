@@ -13,7 +13,8 @@ export const getAllUsers: RequestHandler = async (_req, res) => {
         surname: true,
         role: true,
         email: true,
-        password: true
+        password: true,
+        birthday: true
       }
     })
     res.json({ users })
@@ -52,3 +53,19 @@ export const deleteUser: RequestHandler = async (req, res) => {
 }
 
 
+
+export const updateBirthday: RequestHandler = async (req, res) => {
+  const userId = +req.params.userId
+  const { birthday } = req.body
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { birthday: new Date(birthday) },
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[UPDATE BIRTHDAY ERROR]', err)
+    res.status(500).json({ error: 'Ошибка при обновлении дня рождения' })
+  }
+}

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from '../api/axios'
 import LessonAnalytics from './LessonAnalytics'
+import { isBefore, isAfter, subYears } from 'date-fns'
+
 
 interface User {
   id: number
@@ -10,12 +12,15 @@ interface User {
   username: string
   role: 'student' | 'teacher' | 'admin'
   email: string
+  birthday?: string | null 
 }
 
 interface Group {
   id: number
   name: string
 }
+
+
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -28,7 +33,12 @@ export default function AdminDashboard() {
   // 📥 Загрузка пользователей
   const fetchUsers = async () => {
     const res = await axios.get('/admin/users')
-    setUsers(res.data.users)
+    const sorted = res.data.users.slice().sort((a: User, b: User) => {
+      const nameA = `${a.surname} ${a.name}`.toLowerCase()
+      const nameB = `${b.surname} ${b.name}`.toLowerCase()
+      return nameA.localeCompare(nameB)
+    })
+    setUsers(sorted)
     setLoading(false)
   }
 
@@ -50,6 +60,22 @@ export default function AdminDashboard() {
     await axios.delete(`/admin/users/${id}`)
     fetchUsers()
   }
+
+  async function handleBirthdayChange(userId: number, dateStr: string) {
+    const date = new Date(dateStr)
+    const minDate = subYears(new Date(), 80)
+    const maxDate = subYears(new Date(), 1)
+
+    if (isBefore(date, minDate) || isAfter(date, maxDate)) {
+      alert('Дата рождения должна быть от 1 до 80 лет назад')
+      fetchUsers() // сбросить невалидное изменение
+      return
+    }
+
+    await axios.put(`/admin/users/${userId}/birthday`, { birthday: dateStr })
+    fetchUsers()
+  }
+
 
   useEffect(() => {
     fetchUsers()
@@ -92,6 +118,7 @@ export default function AdminDashboard() {
         </ul>
       </div>
 
+
       {/* 📋 Таблица пользователей */}
       <div className="mt-10">
         <h3 className="text-xl font-bold mb-4">👤 Пользователи</h3>
@@ -105,13 +132,14 @@ export default function AdminDashboard() {
                 <th className="p-2">Username</th>
                 <th className="p-2">Email</th>
                 <th className="p-2">Роль</th>
+                <th className="p-2">Д.р.</th>
                 <th className="p-2 text-right">Действия</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
                 <tr key={user.id} className="border-t">
-                  <td className="p-2">{user.name} {user.surname}</td>
+                  <td className="p-2">{user.surname} {user.name}</td>
                   <td className="p-2">{user.username}</td>
                   <td className="p-2">{user.email}</td>
                   <td className="p-2">
@@ -124,6 +152,17 @@ export default function AdminDashboard() {
                       <option value="teacher">teacher</option>
                       <option value="admin">admin</option>
                     </select>
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="date"
+                      defaultValue={user.birthday ? user.birthday.slice(0, 10) : ''}
+                      onBlur={e => handleBirthdayChange(user.id, e.target.value)}
+                      className="border p-1 rounded"
+                      max={subYears(new Date(), 1).toISOString().slice(0, 10)}
+                      min={subYears(new Date(), 80).toISOString().slice(0, 10)}
+                    />
+
                   </td>
                   <td className="p-2 text-right">
                     <button
@@ -139,6 +178,7 @@ export default function AdminDashboard() {
           </table>
         )}
       </div>
+
 
       {/* 📊 Аналитика по урокам */}
       <div className="space-y-4 mt-10">

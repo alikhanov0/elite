@@ -6,7 +6,7 @@ import { createLesson, getAllLessons, gradeStudentLesson  } from '../controllers
 
 const router = Router()
 
-router.post('/create', authenticate, onlyRole('teacher'), createLesson)
+router.post('/create', authenticate, createLesson)
 router.get('/all', authenticate, getAllLessons)
 router.post('/:lessonId/grade', authenticate, onlyRole('teacher'), gradeStudentLesson)
 

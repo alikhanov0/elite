@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { register, login } from '../controllers/auth.controller'
 import { authenticate } from '../middlewares/auth.middleware'
 import { onlyRole } from '../middlewares/role.middleware'
+import { getTodayBirthdays } from '../controllers/notifications.controller'
 
 const router = Router()
 
@@ -28,5 +29,9 @@ router.get('/me', authenticate, (req, res) => {
   const user = (req as any).user
   res.json({ message: 'Вы авторизованы!', user })
 })
+
+
+router.get('/notifications/birthdays/today', authenticate, getTodayBirthdays);
+
 
 export default router

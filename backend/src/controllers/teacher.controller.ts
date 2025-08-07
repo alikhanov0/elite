@@ -65,48 +65,105 @@ export const getLessonStudents = async (req: Request, res: Response) => {
 }
 
 
-export const saveLessonGrades = async (req: Request, res: Response) => {
-  const lessonId = +req.params.lessonId
-  const grades = req.body // array of { studentId, status, score, homeworkScore }
+export const saveLessonGrades: RequestHandler = async (req, res) => {
+  const lessonId = +req.params.lessonId;
+  const grades: {
+    studentId: number;
+    status: 'visited' | 'absent_reasoned' | 'absent_unreasoned';
+    score: number;
+    homeworkScore: number;
+  }[] = req.body;
 
-  for (const entry of grades) {
-    const existing = await prisma.studentLesson.findFirst({
-      where: { studentId: entry.studentId, lessonId }
-    })
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { groupId: true }
+    });
 
-    if (existing) {
-      await prisma.studentLesson.update({
-        where: { id: existing.id },
-        data: {
-          status: entry.status,
-          score: entry.score,
-          homeworkScore: entry.homeworkScore
-        }
-      })
-    } else {
-      await prisma.studentLesson.create({
-        data: {
-          studentId: entry.studentId,
-          lessonId,
-          status: entry.status,
-          score: entry.score,
-          homeworkScore: entry.homeworkScore
-        }
-      })
+    if (!lesson || lesson.groupId === null) {
+       res.status(404).json({ error: 'Урок или группа не найдены' });
+       return
     }
-  }
 
-  res.json({ success: true })
+    const groupId = lesson.groupId;
+    const toDecrement: number[] = [];
+
+    for (const { studentId, status, score, homeworkScore } of grades) {
+      await prisma.studentLesson.upsert({
+        where: { studentId_lessonId: { studentId, lessonId } },
+        create: { studentId, lessonId, status, score, homeworkScore },
+        update: { status, score, homeworkScore }
+      });
+
+      if (status === 'visited' || status === 'absent_unreasoned') {
+        toDecrement.push(studentId);
+      }
+    }
+
+    if (toDecrement.length > 0) {
+      const eligible = await prisma.studentGroup.findMany({
+        where: {
+          studentId: { in: toDecrement },
+          groupId: groupId,
+          lessonsLeft: { gt: 0 }
+        },
+        select: { studentId: true }
+      });
+
+      const eligibleIds = eligible.map(s => s.studentId);
+
+      if (eligibleIds.length > 0) {
+        await prisma.studentGroup.updateMany({
+          where: {
+            studentId: { in: eligibleIds },
+            groupId: groupId
+          },
+          data: {
+            lessonsLeft: { decrement: 1 }
+          }
+        });
+      }
+
+      // после обновления абонемента
+if (eligibleIds.length < toDecrement.length) {
+  const notUpdated = toDecrement.filter(id => !eligibleIds.includes(id));
+
+  const missingStudents = await prisma.user.findMany({
+    where: { id: { in: notUpdated } },
+    select: { name: true, surname: true }
+  });
+
+  const msg = `У следующих студентов недостаточно уроков: ${missingStudents
+    .map(s => `${s.name} ${s.surname}`)
+    .join(', ')}`;
+
+  res.json({ success: true, warning: msg });
+  return;
 }
+
+
+    }
+    
+    res.json({ success: true });
+    return
+  } catch (err) {
+    console.error('[SAVE GRADES ERROR]', err);
+    res.status(500).json({ error: 'Ошибка при сохранении оценок' });
+    return
+  }
+};
+
+
+
 
 export const createLesson: RequestHandler = async (req, res) => {
   const user = (req as any).user
   const groupId = +req.params.groupId
-  const { name, date } = req.body
+  const { name, date, repeat = 1 } = req.body
 
   if (!name || !date || !groupId) {
     res.status(400).json({ error: 'Missing fields' })
-    return
+    return 
   }
 
   const parsedDate = new Date(date)
@@ -114,7 +171,11 @@ export const createLesson: RequestHandler = async (req, res) => {
   const hundredYearsFromNow = new Date()
   hundredYearsFromNow.setFullYear(now.getFullYear() + 100)
 
-  if (isNaN(parsedDate.getTime()) || parsedDate < new Date('2000-01-01') || parsedDate > hundredYearsFromNow) {
+  if (
+    isNaN(parsedDate.getTime()) ||
+    parsedDate < new Date('2000-01-01') ||
+    parsedDate > hundredYearsFromNow
+  ) {
     res.status(400).json({ error: 'Некорректная дата урока' })
     return
   }
@@ -124,23 +185,72 @@ export const createLesson: RequestHandler = async (req, res) => {
       where: { id: groupId }
     })
 
-    if (!group || group.teacherId !== user.id) {
+    if (!group) {
+      res.status(404).json({ error: 'Группа не найдена' })
+      return 
+    }
+
+    // ⛔ Только учитель своей группы или админ может добавлять
+    if (user.role === 'teacher' && group.teacherId !== user.id) {
       res.status(403).json({ error: 'Access denied to this group' })
       return
     }
 
-    await prisma.lesson.create({
-      data: {
-        name,
-        date: parsedDate,
-        groupId,
-        teacherId: user.id
-      }
-    })
+    const lessons = Array.from({ length: repeat }, (_, i) => ({
+      name,
+      date: new Date(parsedDate.getTime() + i * 7 * 24 * 60 * 60 * 1000), // + i недель
+      groupId,
+      teacherId: group.teacherId
+    }))
 
-    res.status(201).json({ success: true })
+    await prisma.lesson.createMany({ data: lessons })
+
+    res.status(201).json({ success: true, count: lessons.length })
+    return 
   } catch (err) {
     console.error('[CREATE LESSON ERROR]', err)
     res.status(500).json({ error: 'Internal server error' })
+    return 
+  }
+}
+
+export const deleteLesson: RequestHandler = async (req, res) => {
+  const { lessonId } = req.params;
+
+  try {
+    // Удаление зависимостей
+    await prisma.studentLesson.deleteMany({
+      where: { lessonId: +lessonId }
+    });
+
+    // Удаление самого урока
+    await prisma.lesson.delete({
+      where: { id: +lessonId }
+    });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[DELETE LESSON ERROR]', err);
+    res.status(500).json({ error: 'Ошибка при удалении урока' });
+  }
+};
+
+
+
+export const updateLessons: RequestHandler = async (req, res) => {
+  const { studentId, lessonsLeft } = req.body
+
+  try {
+    await prisma.studentGroup.updateMany({
+      where: {
+        studentId: +studentId,
+        groupId: +req.params.groupId
+      },
+      data: { lessonsLeft }
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Ошибка при обновлении абонемента' })
   }
 }

@@ -1,131 +1,104 @@
 import { useEffect, useState } from 'react'
 import axios from '../api/axios'
-import { useAuth } from '../auth/AuthContext'
+import { startOfWeek, addDays, subWeeks, addWeeks, format } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import LessonConduct from './LessonConduct'
+import AddLessonForm from './AddLessonForm'
 
-interface Group {
-  id: number
-  name: string
-}
-
-interface Lesson {
-  id: number
-  name: string
-  date: string
-}
+interface Group { id: number; name: string }
+interface Lesson { id: number; name: string; date: string }
 
 export default function TeacherDashboard() {
-  const { user } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [weekStart, setWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null)
 
-  const [newLessonName, setNewLessonName] = useState('')
-  const [newLessonDate, setNewLessonDate] = useState('')
-
-  const fetchGroups = async () => {
+  const loadGroups = async () => {
     const res = await axios.get('/teacher/groups')
     setGroups(res.data.groups)
   }
 
-  const fetchLessons = async (groupId: number) => {
+  const loadLessons = async (groupId: number) => {
     const res = await axios.get(`/teacher/group/${groupId}/lessons`)
     setLessons(res.data.lessons)
   }
 
-  const handleCreateLesson = async () => {
-    if (!selectedGroupId || !newLessonName || !newLessonDate) return
-    await axios.post(`/teacher/group/${selectedGroupId}/create-lesson`, {
-      name: newLessonName,
-      date: newLessonDate
-    })
-    setNewLessonName('')
-    setNewLessonDate('')
-    fetchLessons(selectedGroupId)
-  }
-
-  useEffect(() => {
-    fetchGroups()
-  }, [])
+  useEffect(() => { loadGroups() }, [])
 
   useEffect(() => {
     if (selectedGroupId) {
-      fetchLessons(selectedGroupId)
+      loadLessons(selectedGroupId)
       setSelectedLessonId(null)
     }
   }, [selectedGroupId])
+
+  const getWeekLessons = () => {
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+    return weekDays.map(day =>
+      lessons
+        .filter(l => new Date(l.date).toDateString() === day.toDateString())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    )
+  }
+
+  const weekLessons = getWeekLessons()
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold">🧑‍🏫 Панель учителя</h2>
 
-      {/* Выбор группы */}
-      <div>
-        <label className="block text-sm font-medium mb-1">📚 Выберите группу:</label>
-        <select
-          value={selectedGroupId ?? ''}
-          onChange={(e) => setSelectedGroupId(+e.target.value)}
-          className="border p-2 rounded w-full"
-        >
-          <option value="">-- Выберите группу --</option>
-          {groups.map(g => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Группа */}
+      <select value={selectedGroupId ?? ''} onChange={e => setSelectedGroupId(+e.target.value)} className="border p-2 rounded w-full">
+        <option value="">-- Выберите группу --</option>
+        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+      </select>
 
-      {/* Уроки группы */}
+      {/* Если группа выбрана — расписание недели */}
       {selectedGroupId && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">📅 Уроки</h3>
+        <div className="border rounded p-4 bg-gray-50">
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={() => setWeekStart(w => subWeeks(w, 1))} className="px-3 py-1 bg-gray-200 rounded">← Неделя</button>
+            <div className="font-semibold">{format(weekStart, 'dd MMM yyyy', { locale: ru })} – {format(addDays(weekStart,6), 'dd MMM yyyy', { locale: ru })}</div>
+            <button onClick={() => setWeekStart(w => addWeeks(w, 1))} className="px-3 py-1 bg-gray-200 rounded">Неделя →</button>
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {weekLessons.map((dayList, idx) => (
+    <div key={idx} className="bg-white border rounded shadow p-2 flex flex-col">
+      <div
+  className="font-medium border-b pb-1 mb-2 text-sm h-[40px] flex items-center justify-center text-center"
+>
+  {format(addDays(weekStart, idx), 'EEEE, dd.MM', { locale: ru })}
+</div>
 
-          <ul className="space-y-2">
-            {lessons.map(lesson => (
-              <li
-                key={lesson.id}
-                onClick={() => setSelectedLessonId(lesson.id)}
-                className={`border p-2 rounded cursor-pointer hover:bg-gray-100 ${
-                  lesson.id === selectedLessonId ? 'bg-blue-100' : ''
-                }`}
-              >
-                <div className="font-semibold">{lesson.name}</div>
-                <div className="text-sm text-gray-600">{new Date(lesson.date).toLocaleString()}</div>
-              </li>
-            ))}
-          </ul>
-
-          {/* Добавить урок */}
-          <div className="space-y-2 mt-4">
-            <input
-              type="text"
-              placeholder="Название урока"
-              className="border p-2 rounded w-full"
-              value={newLessonName}
-              onChange={(e) => setNewLessonName(e.target.value)}
-            />
-            <input
-              type="datetime-local"
-              className="border p-2 rounded w-full"
-              value={newLessonDate}
-              min="2000-01-01T00:00"
-              max="2124-12-31T23:59"
-              onChange={(e) => setNewLessonDate(e.target.value)}
-            />
-            <button
-              onClick={handleCreateLesson}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              ➕ Добавить урок
-            </button>
+      <div className="flex-1 space-y-2">
+        {dayList.map(l => (
+          <div
+            key={l.id}
+            onClick={() => setSelectedLessonId(l.id)}
+            className={`text-left border p-2 rounded cursor-pointer hover:bg-blue-50 ${
+              l.id === selectedLessonId ? 'bg-blue-100' : ''
+            }`}
+          >
+            <div className="font-semibold text-sm">{l.name}</div>
+            <div className="text-xs text-gray-600">{format(new Date(l.date), 'HH:mm')}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ))}
           </div>
         </div>
       )}
 
-      {/* Проведение урока */}
-      {selectedLessonId && (
-        <LessonConduct lessonId={selectedLessonId} />
+      {/* Добавление урока */}
+      {selectedGroupId && (
+        <AddLessonForm groupId={selectedGroupId} onAdded={() => loadLessons(selectedGroupId)} />
       )}
+
+      {/* Проведение урока */}
+      {selectedLessonId && <LessonConduct lessonId={selectedLessonId} />}
     </div>
   )
 }

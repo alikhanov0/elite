@@ -15,6 +15,7 @@ model User {
   name               String
   surname            String
   email              String
+  birthday           DateTime?
 
   // 🔁 Отношения:
   teacherGroups      Group[]               @relation("GroupTeacher")
@@ -36,19 +37,21 @@ model Group {
 }
 
 model StudentGroup {
-  id        Int     @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
+  student      User    @relation(fields: [studentId], references: [id])
+  studentId    Int
+  group        Group   @relation(fields: [groupId], references: [id])
+  groupId      Int
 
-  student   User    @relation(fields: [studentId], references: [id])
-  studentId Int
-
-  group     Group   @relation(fields: [groupId], references: [id])
-  groupId   Int
+  lessonsLeft  Int     @default(0) 
 }
+
 
 model Lesson {
   id          Int      @id @default(autoincrement())
   name        String
   date        DateTime
+  repeatId    String? 
 
   group       Group?    @relation(fields: [groupId], references: [id])
   groupId     Int?
@@ -58,6 +61,7 @@ model Lesson {
 
   studentLessons StudentLesson[]
 }
+
 
 model StudentLesson {
   id            Int      @id @default(autoincrement())

@@ -46,6 +46,15 @@ export const getLessonAnalytics: RequestHandler = async (req, res) => {
       return
     }
 
+    const studentGroup = await prisma.studentGroup.findFirst({
+      where: { studentId },
+      select: { groupId: true }
+    })
+    if (!studentGroup) {
+      res.status(404).json({ error: 'Группа студента не найдена' });
+      return
+    }
+
     const lessons = await prisma.studentLesson.findMany({
       where: {
         studentId,
@@ -77,9 +86,61 @@ export const getLessonAnalytics: RequestHandler = async (req, res) => {
       status: l.status
     }))
 
-    res.json({ lessons: formatted })
+    res.json({ lessons: formatted, groupId: studentGroup.groupId })
   } catch (err) {
     console.error('❌ Lesson analytics error:', err)
     res.status(500).json({ error: 'Server error while fetching lesson analytics' })
   }
 }
+export const getGroupAvgByDate: RequestHandler = async (req, res, next) => {
+  try {
+    const groupId = Number(req.query.groupId);
+    const fromStr = req.query.from as string;
+    const toStr = req.query.to as string;
+
+    if (isNaN(groupId) || !fromStr || !toStr) {
+      res.status(400).json({ error: 'groupId, from и to обязательны' });
+      return
+    }
+
+    const from = new Date(fromStr);
+    const to = new Date(toStr);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      res.status(400).json({ error: 'Неверный формат даты' });
+      return
+    }
+
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        groupId,
+        date: { gte: from, lte: to }
+      },
+      include: {
+        studentLessons: true
+      }
+    });
+
+    const map = new Map<string, number[]>();
+
+    lessons.forEach(lesson => {
+      const dateKey = lesson.date.toISOString().slice(0, 10);
+      lesson.studentLessons.forEach(sl => {
+        if (typeof sl.score === 'number') {
+          const scores = map.get(dateKey) || [];
+          scores.push(sl.score);
+          map.set(dateKey, scores);
+        }
+      });
+    });
+
+    const data = Array.from(map.entries()).map(([day, scores]) => ({
+      date: day,
+      avg: scores.reduce((a, b) => a + b, 0) / scores.length
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    res.json({ groupAvgByDate: data });
+  } catch (err) {
+    next(err);
+  }
+};
