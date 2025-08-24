@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { useAuth } from './auth/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import AdminRegister from './pages/AdminRegister'
+// import AdminRegister from './pages/AdminRegister'
 import AdminGroups from './pages/AdminGroups'
 import RatingPage from './pages/RatingPage'
 import BirthdayPage from './pages/BirthdayPage'

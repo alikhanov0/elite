@@ -19,19 +19,19 @@ interface Group {
   name: string
 }
 
-interface News {
+/* interface News {
   id: number
   title: string
   text: string
   createdAt: string
-}
+} */
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
 
   const [users, setUsers] = useState<User[]>([])
   const [groups, setGroups] = useState<Group[]>([])
-  const [news, setNews] = useState<News[]>([])
+  //const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null)
 
@@ -55,8 +55,8 @@ export default function AdminDashboard() {
 
   // 📥 Загрузка новостей
   const fetchNews = async () => {
-    const res = await axios.get('/news')
-    setNews(res.data)
+    //const res = await axios.get('/news')
+    //setNews(res.data)
   }
 
   // 🔁 Обновление роли
@@ -73,11 +73,11 @@ export default function AdminDashboard() {
   }
 
   // ❌ Удаление новости
-  const handleDeleteNews = async (id: number) => {
+  /*const handleDeleteNews = async (id: number) => {
     if (!confirm('Удалить объявление?')) return
     await axios.delete(`/news/${id}`)
     fetchNews()
-  }
+  }*/
 
   async function handleBirthdayChange(userId: number, dateStr: string) {
     const date = new Date(dateStr)

@@ -87,7 +87,7 @@ export default function LessonAnalytics({ studentId, readOnly = false }: Props) 
 
   const [components, setComponents] = useState<any[]>([])
   const [scores, setScores] = useState<{ [key: number]: number }>({})
-  const [loading, setLoading] = useState(false)
+  const [/*loading*/, setLoading] = useState(false)
 
  
 

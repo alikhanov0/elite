@@ -34,20 +34,20 @@ interface LessonStudent {
   homeworkScore: number
 }
 
-interface AdminGroupPageProps {
+/*interface AdminGroupPageProps {
   group: Group
   isEditingName: boolean
   setIsEditingName: (value: boolean) => void
   editedGroupName: string
   setEditedGroupName: (value: string) => void
   refreshGroups: () => void
-}
+}*/
 
 export default function AdminGroupPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [newGroupName, setNewGroupName] = useState<string>('')
+  const [/*newGroupName*/, setNewGroupName] = useState<string>('')
 
 
   const [group, setGroup] = useState<Group | null>(null)
@@ -59,14 +59,14 @@ export default function AdminGroupPage() {
   const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null)
   const [lessonStudents, setLessonStudents] = useState<LessonStudent[]>([])
 
-  const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
+  /*const [editingLessonId, setEditingLessonId] = useState<number | null>(null)
   const [editingLessonName, setEditingLessonName] = useState('')
-  const [editingLessonDate, setEditingLessonDate] = useState('')
+  const [editingLessonDate, setEditingLessonDate] = useState('')*/
 
   const [newLessonName, setNewLessonName] = useState('')
-  const [newLessonDate, setNewLessonDate] = useState('')
+  //const [newLessonDate, setNewLessonDate] = useState('')
   const [repeatWeeks, setRepeatWeeks] = useState<number>(4)
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [sortOrder, /*setSortOrder*/] = useState<'asc' | 'desc'>('asc')
 
   const [isEditingName, setIsEditingName] = useState(false)
 const [editedGroupName, setEditedGroupName] = useState('')
@@ -205,10 +205,10 @@ const updateLessonsLeft = async (studentId: number, lessonsLeft: number) => {
 
 
 
-  const removeLesson = async (lessonId: number) => {
+  /*const removeLesson = async (lessonId: number) => {
     await axios.delete(`/admin/groups/${id}/lessons/${lessonId}`)
     fetchGroup()
-  }
+  }*/
 
   const sortedLessons = group
     ? [...group.lessons].sort((a, b) =>
