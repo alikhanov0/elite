@@ -1,0 +1,26 @@
+{
+  "name": "elite3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon --exec ts-node backend/src/index.ts",
+    "client": "npm --prefix frontend run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alikhanov0/elite.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alikhanov0/elite/issues"
+  },
+  "homepage": "https://github.com/alikhanov0/elite#readme",
+  "description": "",
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}

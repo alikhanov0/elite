@@ -25,6 +25,16 @@ model User {
   diagnosticResults  DiagnosticTestResult[]
 }
 
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  text      String
+  createdAt DateTime @default(now())
+}
+
+
+
+
 model Group {
   id        Int           @id @default(autoincrement())
   name      String

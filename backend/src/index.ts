@@ -9,6 +9,7 @@ import studentRoutes from './routes/student.routes'
 import diagnosticRoutes from './routes/diagnostics.routes'
 import teacherRouter from './routes/teacher.routes'
 import rating from './routes/public.routes'
+import news from './routes/news.routes'
 
 
 dotenv.config()
@@ -26,6 +27,7 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/student', studentRoutes)
 app.use('/api/diagnostics', diagnosticRoutes)
 app.use('/api/teacher', teacherRouter)
+app.use('/api/news', news)
 app.use('/api', rating)
 
 
