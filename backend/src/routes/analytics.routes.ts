@@ -30,6 +30,7 @@ router.get('/my-lessons', authenticate, async (req, res) => {
     })
 
     res.json({ attendance, scores })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка при получении аналитики' })

@@ -41,6 +41,7 @@ export const getMonthlyRating: RequestHandler = async (req, res) => {
 
   const ratings = Array.from(map.values()).sort((a, b) => b.totalScore - a.totalScore)
   res.json({ ratings })
+  return
 }
 
 export const getMonthlyRatingByGrade: RequestHandler = async (req, res) => {
@@ -95,6 +96,7 @@ export const getMonthlyRatingByGrade: RequestHandler = async (req, res) => {
     const ratings = Array.from(map.values()).sort((a, b) => b.totalScore - a.totalScore)
 
     res.json({ grade, ratings })
+    return
   } catch (error) {
     console.error('Ошибка при получении рейтинга:', error)
     res.status(500).json({ error: 'Ошибка сервера' })

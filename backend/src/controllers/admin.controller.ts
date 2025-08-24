@@ -18,6 +18,7 @@ export const getAllUsers: RequestHandler = async (_req, res) => {
       }
     })
     res.json({ users })
+    return
   } catch (err) {
     res.status(500).json({ error: 'Ошибка получения пользователей' })
   }
@@ -38,6 +39,7 @@ export const updateUserRole: RequestHandler = async (req, res) => {
   })
 
   res.json({ success: true })
+  return
 }
 
 export const deleteUser: RequestHandler = async (req, res) => {
@@ -46,6 +48,7 @@ export const deleteUser: RequestHandler = async (req, res) => {
   try {
     await prisma.user.delete({ where: { id: userId } })
     res.json({ success: true })
+    return
   } catch (err) {
     console.error('Ошибка при удалении:', err)
     res.status(500).json({ error: 'Ошибка при удалении пользователя' })
@@ -64,6 +67,7 @@ export const updateBirthday: RequestHandler = async (req, res) => {
       data: { birthday: new Date(birthday) },
     })
     res.json({ success: true })
+    return
   } catch (err) {
     console.error('[UPDATE BIRTHDAY ERROR]', err)
     res.status(500).json({ error: 'Ошибка при обновлении дня рождения' })
@@ -78,4 +82,5 @@ export const renameGroup: RequestHandler = async (req, res) => {
     data: { name }
   })
   res.json({ ok: true })
+  return
 }

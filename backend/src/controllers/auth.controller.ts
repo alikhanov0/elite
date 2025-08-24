@@ -36,6 +36,7 @@ export const register: RequestHandler  = async (req: Request, res: Response) => 
     )
 
     res.json({ token, user: { id: user.id, name: user.name, role: user.role } })
+    return
 
   } catch (err) {
     console.error(err)
@@ -83,6 +84,7 @@ export const login: RequestHandler = async (req, res) => {
         role: user.role
       }
     })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка сервера' })

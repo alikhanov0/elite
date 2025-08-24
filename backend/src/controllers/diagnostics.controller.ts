@@ -7,6 +7,7 @@ export const getAllComponents: RequestHandler = async (req, res) => {
   try {
     const components = await prisma.testComponent.findMany()
     res.json({ components })
+    return
   } catch (error) {
     res.status(500).json({ error: 'Ошибка при получении компонентов' })
   }
@@ -45,6 +46,7 @@ export const updateDiagnosticScore: RequestHandler = async (req, res) => {
     }
 
     res.json({ success: true })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка сохранения' })
@@ -74,6 +76,7 @@ export const getStudentLessonAnalytics: RequestHandler = async (req, res) => {
     })
 
     res.json({ attendance, scores })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка при получении аналитики' })
@@ -106,6 +109,7 @@ export const getStudentLessonsInRange: RequestHandler = async (req, res) => {
   })
 
   res.json({ lessons })
+  return
 }
 
 
@@ -126,6 +130,7 @@ export const getStudentDiagnosticScores: RequestHandler = async (req, res) => {
     })
 
     res.json({ scores })
+    return
   } catch (err) {
     console.error('❌ Ошибка при получении оценок:', err)
     res.status(500).json({ error: 'Ошибка при загрузке оценок' })

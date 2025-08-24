@@ -34,6 +34,7 @@ export const getAllLessons: RequestHandler = async (_req, res) => {
       include: { studentLessons: true }
     })
     res.json({ lessons })
+    return
   } catch (err) {
     res.status(500).json({ error: 'Ошибка получения уроков' })
   }
@@ -74,6 +75,7 @@ export const gradeStudentLesson: RequestHandler = async (req, res) => {
         }
       })
       res.json({ message: 'Оценка обновлена', data: updated })
+      return
     } else {
       const created = await prisma.studentLesson.create({
         data: {

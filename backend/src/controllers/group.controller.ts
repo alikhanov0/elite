@@ -14,6 +14,7 @@ export const getAllGroups = async (req: Request, res: Response) => {
     }
   })
   res.json({ groups })
+  return
 }
 
 export const getGroupById = async (req: Request, res: Response) => {
@@ -40,6 +41,7 @@ export const getGroupById = async (req: Request, res: Response) => {
     }
 
     res.json({ group }) // ✅ НЕ возвращай res.json
+    return
   } catch (err) {
     console.error('Ошибка получения группы:', err)
     res.status(500).json({ error: 'Ошибка сервера при получении группы' })
@@ -59,6 +61,7 @@ export const updateLesson = async (req: Request, res: Response) => {
       }
     })
     res.json({ success: true })
+    return
   } catch (err) {
     console.error('Ошибка обновления урока:', err)
     res.status(500).json({ error: 'Ошибка при обновлении урока' })
@@ -75,6 +78,7 @@ export const changeTeacher = async (req: Request, res: Response) => {
       data: { teacherId: +teacherId }
     })
     res.json({ success: true })
+    return
   } catch (err) {
     console.error('Ошибка смены учителя:', err)
     res.status(500).json({ error: 'Ошибка при обновлении учителя' })
@@ -93,6 +97,7 @@ export const addStudentToGroup = async (req: Request, res: Response) => {
       },
     })
     res.json({ success: true })
+    return
   } catch (error) {
     console.error('Error adding student to group:', error)
     res.status(500).json({ error: 'Ошибка при добавлении студента' })
@@ -111,6 +116,7 @@ export const removeStudentFromGroup = async (req: Request, res: Response) => {
       },
     })
     res.json({ success: true })
+    return
   } catch (error) {
     console.error('Error removing student from group:', error)
     res.status(500).json({ error: 'Ошибка при удалении студента' })

@@ -18,7 +18,7 @@ export default function DeleteNews() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await axios.get<News[]>('http://localhost:5000/api/news');
+        const res = await axios.get<News[]>('/news');
         setNews(res.data);
       } catch (error) {
         console.error('Ошибка при загрузке новостей:', error);
@@ -33,7 +33,7 @@ export default function DeleteNews() {
   const handleDelete = async (id: number) => {
     if (!window.confirm("Вы уверены, что хотите удалить это объявление?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/news/${id}`);
+      await axios.delete(`/news/${id}`);
       setNews(news.filter((item) => item.id !== id));
     } catch (error) {
       console.error('Ошибка при удалении:', error);

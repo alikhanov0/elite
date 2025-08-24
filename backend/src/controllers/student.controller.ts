@@ -11,6 +11,7 @@ export const getStudentDiagnostics = async (req: Request, res: Response) => {
     })
 
     res.json({ results })
+    return
   } catch (err) {
     res.status(500).json({ error: 'Ошибка загрузки результатов' })
   }
@@ -46,6 +47,7 @@ export const getStudentMonthlyAverages = async (req: Request, res: Response) => 
       thisMonthAvg: thisAvg._avg.score ?? 0,
       lastMonthAvg: lastAvg._avg.score ?? 0,
     });
+    return
   } catch (error) {
     console.error('[GET STUDENT MONTHLY AVERAGES ERROR]', error);
     res.status(500).json({ error: 'Ошибка при получении средней оценки' });

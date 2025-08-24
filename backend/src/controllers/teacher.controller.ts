@@ -15,6 +15,7 @@ export const getTeacherGroups: RequestHandler = async (req, res) => {
   })
 
   res.json({ groups })
+  return
 }
 
 export const getGroupLessons = async (req: Request, res: Response) => {
@@ -24,6 +25,7 @@ export const getGroupLessons = async (req: Request, res: Response) => {
     orderBy: { date: 'asc' }
   })
   res.json({ lessons })
+  return
 }
 
 export const getLessonStudents = async (req: Request, res: Response) => {
@@ -62,6 +64,7 @@ export const getLessonStudents = async (req: Request, res: Response) => {
   })
 
   res.json({ students: result })
+  return
 }
 
 
@@ -249,6 +252,7 @@ export const updateLessons: RequestHandler = async (req, res) => {
       data: { lessonsLeft }
     })
     res.json({ success: true })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка при обновлении абонемента' })

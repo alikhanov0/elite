@@ -17,6 +17,7 @@ export const createNews: RequestHandler = async (req, res) => {
     })
 
     res.json(news)
+    return
   } catch (error) {
     res.status(500).json({ error: 'Failed to create news' })
   }
@@ -28,6 +29,7 @@ export const getAllNews: RequestHandler = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     })
     res.json(news)
+    return
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch news' })
   }
@@ -38,6 +40,7 @@ export const deleteNews: RequestHandler = async (req, res) => {
   try {
     await prisma.news.delete({ where: { id } });
     res.json({ message: 'Объявление удалено' });
+    return
   } catch (error) {
     res.status(500).json({ error: 'Ошибка при удалении' });
   }

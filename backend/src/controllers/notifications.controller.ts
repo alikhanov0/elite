@@ -26,4 +26,5 @@ export const getTodayBirthdays: RequestHandler = async (req, res) => {
       role: u.role
     }))
   })
+  return
 }

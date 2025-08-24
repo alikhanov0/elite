@@ -28,6 +28,7 @@ export const getRadarData: RequestHandler = async (req, res) => {
     })
 
     res.json({ radarData })
+    return
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка построения паутины' })
@@ -87,6 +88,7 @@ export const getLessonAnalytics: RequestHandler = async (req, res) => {
     }))
 
     res.json({ lessons: formatted, groupId: studentGroup.groupId })
+    return
   } catch (err) {
     console.error('❌ Lesson analytics error:', err)
     res.status(500).json({ error: 'Server error while fetching lesson analytics' })
@@ -140,6 +142,7 @@ export const getGroupAvgByDate: RequestHandler = async (req, res, next) => {
     })).sort((a, b) => a.date.localeCompare(b.date));
 
     res.json({ groupAvgByDate: data });
+    return
   } catch (err) {
     next(err);
   }

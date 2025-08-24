@@ -28,6 +28,7 @@ router.get('/student-data', authenticate, onlyRole('student'), (req, res) => {
 router.get('/me', authenticate, (req, res) => {
   const user = (req as any).user
   res.json({ message: 'Вы авторизованы!', user })
+  return
 })
 
 
