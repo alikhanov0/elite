@@ -17,7 +17,7 @@ export default function NewsCreate() {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/news', { title, text })
+      await axios.post('/news', { title, text })
       alert('Новость успешно добавлена!')
     } catch (error) {
       console.error(error)

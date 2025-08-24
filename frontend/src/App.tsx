@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { useAuth } from './auth/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-// import AdminRegister from './pages/AdminRegister'
+import AdminRegister from './pages/AdminRegister'
 import AdminGroups from './pages/AdminGroups'
 import RatingPage from './pages/RatingPage'
 import BirthdayPage from './pages/BirthdayPage'
@@ -63,6 +63,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin/news/create" element={<CreateNews />} />
         <Route path="/admin/news/delete" element={<DeleteNews />} />
+        <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/admin/groups/:id" element={<AdminGroups />} />
         <Route path="/rating" element={<RatingPage />} />
         <Route path="/rating/all" element={<AllRatingPage />} />

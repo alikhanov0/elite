@@ -18,7 +18,7 @@ export default function NewsList() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await axios.get<News[]>('http://localhost:5000/api/news');
+        const res = await axios.get<News[]>('/news');
         setNews(res.data);
       } catch (error) {
         console.error('Ошибка при загрузке новостей:', error);
