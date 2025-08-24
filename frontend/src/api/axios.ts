@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const instance = axios.create({
-  baseURL: 'http://localhost:5000/api', // или твой бекенд URL
+  baseURL: 'https://elite-5ea3.onrender.com/api', // или твой бекенд URL
   headers: {
     'Content-Type': 'application/json',
   }
