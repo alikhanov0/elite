@@ -60,10 +60,7 @@ export const login: RequestHandler = async (req, res) => {
       return
     }
 
-    //const valid = await comparePasswords(password, user.password)
-    
-    let valid = false
-    if(password == user.password) valid = true
+    const valid = await comparePasswords(password, user.password)
 
     if (!valid) {
       res.status(401).json({ error: 'Неверный пароль' })
