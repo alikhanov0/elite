@@ -55,14 +55,14 @@ export const login: RequestHandler = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { username } })
 
     if (!user) {
-      res.status(401).json({ error: 'Неверный логин или пароль' })
+      res.status(401).json({ error: 'Неверный логин' })
       return
     }
 
     const valid = await comparePasswords(password, user.password)
 
     if (!valid) {
-      res.status(401).json({ error: 'Неверный логин или пароль' })
+      res.status(401).json({ error: 'Неверный пароль' })
       return
     }
 
