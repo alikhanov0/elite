@@ -11,6 +11,7 @@ import RatingByGradePage from './pages/RatingByGradePage'
 import CreateNews from './pages/NewsCreate'
 import NewsPage from './pages/NewsPage'
 import DeleteNews from './pages/DeleteNews'
+import CreateGroup from './pages/GroupCreate'
 
 
 
@@ -51,8 +52,7 @@ function GlobalButtons() {
 }
 
 
-/*<Route path="/admin/groups/create" element={<CreateGroup />} />
-        <Route path="/admin/groups/delete" element={<DeleteGroup />} />*/
+/*        <Route path="/admin/groups/delete" element={<DeleteGroup />} />*/
 
 
 export default function App() {
@@ -64,7 +64,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin/news/create" element={<CreateNews />} />
         <Route path="/admin/news/delete" element={<DeleteNews />} />
-        
+        <Route path="/admin/groups/create" element={<CreateGroup />} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/admin/groups/:id" element={<AdminGroups />} />
         <Route path="/rating" element={<RatingPage />} />
