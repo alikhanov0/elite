@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
 
   const [users, setUsers] = useState<User[]>([])
-  const [groups, setGroups] = useState<Group[]>([])
+  const [/*groups*/, setGroups] = useState<Group[]>([])
   //const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null)
@@ -116,22 +116,22 @@ export default function AdminDashboard() {
       {/* 📘 Список групп */}
       <div>
         <h3 className="text-lg font-semibold mb-2">📘 Группы</h3>
-        <ul className="space-y-2">
-          {groups.map(group => (
-            <li
-              key={group.id}
-              className="flex justify-between items-center bg-gray-100 p-3 rounded hover:bg-gray-200 transition"
-            >
-              <span className="font-medium">{group.name}</span>
-              <button
-                onClick={() => navigate(`/admin/groups/${group.id}`)}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Открыть →
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="flex gap-4 mb-4">
+          <button
+            onClick={() => navigate('/admin/groups/create')}
+            className="mt-6 px-4 py-2 bg-green-500 text-white rounded-lg"
+          >
+            ➕ Создать группу
+          </button>
+          <button
+            onClick={() => navigate('admin/groups/delete')}
+            className="mt-6 px-4 py-2 bg-red-500 text-white rounded-lg"
+          >
+              Удалить группу
+          </button>
+
+        </div>
+        
       </div>
 
       {/* 📰 Новости */}
