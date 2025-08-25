@@ -124,10 +124,17 @@ export default function AdminDashboard() {
             ➕ Создать группу
           </button>
           <button
-            onClick={() => navigate('admin/groups/delete')}
+            onClick={() => navigate('/admin/groups/delete')}
             className="mt-6 px-4 py-2 bg-red-500 text-white rounded-lg"
           >
               Удалить группу
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/groups/select')}
+            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg"
+          >
+            👥 Редактировать группу
           </button>
 
         </div>

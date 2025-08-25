@@ -13,6 +13,7 @@ import NewsPage from './pages/NewsPage'
 import DeleteNews from './pages/DeleteNews'
 import CreateGroup from './pages/GroupCreate'
 import DeleteGroup from './pages/GroupDelete'
+import SelectGroup from './pages/SelectGroup'
 
 
 
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/admin/news/delete" element={<DeleteNews />} />
         <Route path="/admin/groups/create" element={<CreateGroup />} />
         <Route path="/admin/groups/delete" element={<DeleteGroup />} />
+        <Route path="/admin/groups/select" element={<SelectGroup/>} />
         <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/admin/groups/:id" element={<AdminGroups />} />
         <Route path="/rating" element={<RatingPage />} />
