@@ -122,3 +122,57 @@ export const removeStudentFromGroup = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Ошибка при удалении студента' })
   }
 }
+
+
+export const addGroup = async (req: Request, res: Response) => {
+  const { name, teacherId } = req.body
+
+  if (!name || !teacherId) {
+    res.status(400).json({ error: 'Не указаны название группы или ID учителя' })
+    return
+  }
+
+  try {
+    const newGroup = await prisma.group.create({
+      data: {
+        name,
+        teacherId: +teacherId, // убедимся, что это число
+      },
+      include: {
+        teacher: true,
+        students: { include: { student: true } },
+        lessons: true
+      }
+    })
+
+    res.json({ group: newGroup })
+    return
+  } catch (err) {
+    console.error('Ошибка при создании группы:', err)
+    res.status(500).json({ error: 'Ошибка сервера при создании группы' })
+  }
+}
+
+export const deleteGroup = async (req: Request, res: Response) => {
+  const groupId = +req.params.id
+
+  if (isNaN(groupId)) {
+    res.status(400).json({ error: 'Неверный ID группы' })
+    return
+  }
+
+  try {
+    // Сначала удаляем связи с учениками и уроки, если у тебя включено каскадное удаление, это можно пропустить
+    await prisma.studentGroup.deleteMany({ where: { groupId } })
+    await prisma.lesson.deleteMany({ where: { groupId } })
+
+    // Удаляем саму группу
+    await prisma.group.delete({ where: { id: groupId } })
+
+    res.json({ success: true })
+    return
+  } catch (err) {
+    console.error('Ошибка при удалении группы:', err)
+    res.status(500).json({ error: 'Ошибка сервера при удалении группы' })
+  }
+}

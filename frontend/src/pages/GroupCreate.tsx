@@ -49,9 +49,14 @@ export default function GroupCreate() {
       const res = await axios.post('/admin/groups', { name, teacherId })
       const newGroupId = res.data.group.id
       // Если добавляли студентов до создания группы, можно их добавить после
-      for (const student of groupStudents) {
-        await axios.post(`/admin/groups/${newGroupId}/add-student`, { studentId: student.id })
-      }
+      
+      await Promise.all(
+        groupStudents.map(student =>
+          axios.post(`/admin/groups/${newGroupId}/students`, { studentId: student.id })
+        )
+      )
+
+
       alert('Группа успешно создана!')
       navigate('/')
     } catch (err) {
